@@ -1,0 +1,120 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MEMORY_SIZE 1000 // size of memory
+
+// define memory block structure
+struct mem_block {
+    void *start_address;
+    void *end_address;
+    int size;
+    int is_allocated;
+    struct mem_block *next;
+};
+
+// declare global memory block pointer
+struct mem_block *head = NULL;
+
+// function to initialize memory block
+void init_mem_block() {
+    head = (struct mem_block *) malloc(sizeof(struct mem_block));
+    head->start_address = (void*) 0;
+    head->end_address = (void*) (MEMORY_SIZE - 1);
+    head->size = MEMORY_SIZE;
+    head->is_allocated = 0;
+    head->next = NULL;
+}
+
+// function to allocate memory block using first fit search
+void *allocate_mem_block(int size) {
+    struct mem_block *current = head;
+    while (current != NULL) {
+        if (!current->is_allocated && current->size >= size) {
+            // found free memory block with sufficient size
+            struct mem_block *new_block = (struct mem_block *) malloc(sizeof(struct mem_block));
+            new_block->start_address = current->start_address;
+            new_block->end_address = (void*) ((char*)current->start_address + size - 1);
+            new_block->size = size;
+            new_block->is_allocated = 1;
+            new_block->next = current->next;
+            current->next = new_block;
+            current->start_address = (void*) ((char*)new_block->end_address + 1);
+            current->size -= size;
+            return new_block->start_address;
+        }
+        current = current->next;
+    }
+    return NULL; // failed to allocate memory block
+}
+
+// function to deallocate memory block
+void deallocate_mem_block(void *ptr) {
+    struct mem_block *current = head;
+    while (current != NULL) {
+        if (current->is_allocated && current->start_address == ptr) {
+            // found allocated memory block to deallocate
+            current->is_allocated = 0;
+            return;
+        }
+        current = current->next;
+    }
+}
+
+// function to print memory block status
+void print_mem_block() {
+    struct mem_block *current = head;
+    printf("Memory block status:\n");
+    while (current != NULL) {
+        printf("start address: %p, end address: %p, size: %d, is_allocated: %d\n", current->start_address, current->end_address, current->size, current->is_allocated);
+        current = current->next;
+    }
+}
+
+// function to measure fragmentation
+int measure_fragmentation() {
+    int num_free_blocks = 0;
+    int total_free_space = 0;
+    struct mem_block *current = head;
+    while (current != NULL) {
+        if (!current->is_allocated) {
+            num_free_blocks++;
+            total_free_space += current->size;
+        }
+        current = current->next;
+    }
+    return (num_free_blocks > 0) ? total_free_space / num_free_blocks : 0;
+}
+
+int main() {
+    init_mem_block();
+    printf("Memory block initialized.\n");
+
+    void *p1 = allocate_mem_block(100);
+    printf("Allocated 100 bytes of memory at %p\n", p1);
+
+    void *p2 = allocate_mem_block(200);
+    printf("Allocated 200 bytes of memory at %p\n", p2);
+
+    deallocate_mem_block(p1);
+    printf("Deallocated memory at %p\n", p1);
+
+    void *p3 = allocate_mem_block(50);
+    if (p3 == NULL) {
+        printf("Failed to allocate memory.\n");
+    } else {
+        printf("Allocated 50 bytes of memory at %p\n", p3);
+    }
+void *p4 = allocate_mem_block(400);
+if (p4 == NULL) {
+    printf("Failed to allocate memory.\n");
+} else {
+    printf("Allocated 400 bytes of memory at %p\n", p4);
+}
+
+print_mem_block();
+
+int fragmentation = measure_fragmentation();
+printf("Fragmentation: %d\n", fragmentation);
+
+return 0;
+}
